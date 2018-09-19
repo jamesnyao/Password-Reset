@@ -35,15 +35,6 @@ if (file_exists($tokendir.$token)) {
     $passmatch = false;
     $passstrong = false;
     
-    /*
-    if ($username == "") {
-        echo "<script type='text/javascript'>
-                alert('Invalid link');
-                window.location.href='http://www2.cs.binghamton.edu/~jyao6/';
-              </script>";
-    }
-    */
-    
     if (isset($_POST["pass"])) {
         $pass = $_POST["pass"];
         $passagain = $_POST["passagain"];
@@ -55,18 +46,35 @@ if (file_exists($tokendir.$token)) {
             $passmatch = true;
         }
         
-        // TODO: Check password strength
-        /* pass requirements:
-        min 9 char
-        3 of 4 char classes (lower, upper, numbers, specialchars)*/
-        if (strlen($pass) >= 9) {
-            // TODO: check here
-            $passstrong = true;
+        // Password requirements:
+        // 9 to 20 string length, 3 of 4 char classes (upper, lower, numbers, specialchars)
+        if (strlen($pass) >= 9 && strlen($pass) <= 20) {
+            $uppers = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            $lowers = "abcdefghijklmnopqrstuvwxyz";
+            $numbers = "0123456789";
+            $specials = " !\"#$%&'()*+,-./:;<=>?@[\]^_`{|}~";
+            $uppersmatch = $lowersmatch = $numbersmatch = $specialsmatch = 0;
+            for ($i = 0; $i < strlen($pass); $i++) {
+                if (strpos($uppers, $pass{$i}) !== false) {
+                    $uppersmatch = 1;
+                } elseif (strpos($lowers, $pass{$i}) !== false) {
+                    $uppersmatch = 1;
+                } elseif (strpos($numbers, $pass{$i}) !== false) {
+                    $uppersmatch = 1;
+                } elseif (strpos($specials, $pass{$i}) !== false) {
+                    $uppersmatch = 1;
+                } else {
+                    $passerr = "* Password character not allowed";
+                    break;
+                }
+                if ($uppersmatch + $lowersmatch + $numbersmatch + $specialsmatch >= 3) {
+                    $passstrong = true;
+                    break;
+                }
+            }
         } else {
-            $passerr = "* Password length must be at least 9 and have 3 of (a-z, A-Z, 0-9, special)";
+            $passerr = "* Password length must be at least 9 and have 3 of (A-Z, a-z, 0-9, special)";
         }
-        
-        // file_put_contents($requeststore.$username, "hi");
         
         if ($passmatch && $passstrong) {
             // Update password here
@@ -78,25 +86,11 @@ if (file_exists($tokendir.$token)) {
             $privatekey = openssl_pkey_get_private("file://private_key.pem");
             openssl_private_decrypt($encryptedpassword, $decryptedpassword, $privatekey);
             
-            
-            $ldaphost = "ldaps://ldap.cs.binghamton.edu";
-            $ldapconn = ldap_connect($ldaphost)
-                    or die("Could not connect to ".$ldaphost); 
-            $dn = "ou=People,dc=cs,dc=binghamton,dc=edu";
-            $sr = ldap_search($ldapconn, $dn, "uid=jyao6");
-            $info = ldap_get_entries($ldapconn, $sr);
-            
-            // Should only have 1 user
-            for ($i=0; $i<$info["count"]; $i++)
-            {
-                // to show the attribute displayName (note the case!)
-                echo $info[$i]["mail"][0];
-                echo $info[$i]["mail"][1];
-            }
+            // TODO: Update password here
            
             echo "<script type='text/javascript'>
                     alert('Password updated to \"".$pass."\"');
-			        window.location.href='http://www2.cs.binghamton.edu/~jyao6/';
+                    window.location.href='http://www2.cs.binghamton.edu/~jyao6/';
                   </script>";
         }   
     }   

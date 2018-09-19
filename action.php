@@ -11,11 +11,26 @@ $tokendir = "./tokens/";
 $username = $_GET["username"];
 $bnum = $_GET["bnum"];
 
-echo "Username is ".$username."<br>";
-echo "BNumber is ".$bnum."<br>";
+// Lookup correct email address
+$emailaddr = "";
+$checkbnum = "123";
+$ldaphost = "ldaps://ldap.cs.binghamton.edu";
+$ldapconn = ldap_connect($ldaphost)
+        or die("Could not connect to ".$ldaphost); 
+$dn = "ou=People,dc=cs,dc=binghamton,dc=edu";
+$sr = ldap_search($ldapconn, $dn, "uid=jyao6");
+$info = ldap_get_entries($ldapconn, $sr);
+for ($i = 0; $i < $info[0]["mail"]["count"]; $i++) {
+    if (strpos($info[0]["mail"][$i], "@binghamton.edu") !== false) {
+        $emailaddr = $info[0]["mail"][$i];
+        break;
+    }
+}
+// TODO: Bnumber lookup
+// $checkbnum = $info[0]["bnumber"][0];
 
-// TODO: Check if bnumber and username is correct.
-if ($bnum == "123") {
+// Check if bnumber and username is correct.
+if ($bnum == $checkbnum) {
 
     // Generate Token
     $token = "";
@@ -26,41 +41,28 @@ if ($bnum == "123") {
         $codeAlphabet .= "abcdefghijklmnopqrstuvwxyz";
         $codeAlphabet .= "0123456789";
         $max = strlen($codeAlphabet);
-
         for ($i = 0; $i < $length; $i++) {
             $token .= $codeAlphabet[random_int(0, $max-1)];
         }
-
     } while(file_exists($tokendir.$token)); 
 
+    // Create token file
     file_put_contents($tokendir.$token, $username);
 
-    // Email
-    echo "www2.cs.binghamton.edu/~jyao6/return.php?token=".$token."<br>";
-    
-    $msg = "You have requested to change your CS LDAP password.\nClick this link: www2.cs.binghamton.edu/~jyao6/return.php?token=".$token."\n";
-
+    // Email    
+    $msg = "You have requested to change your CS LDAP password.\n
+            Click this link: www2.cs.binghamton.edu/~jyao6/return.php?token="
+            .$token."\n";
     $header = "From: sysadmin@cs.binghamton.edu";
-
-    // TODO: Lookup correct email address
-    $emailaddr = $username."@binghamton.edu";
-
-    // TODO: fix mail
     mail($emailaddr, "CS LDAP password reset", $msg, $header);
+    echo "Email with reset link sent to ".$emailaddr;
 
-    echo "Email sent to ".$emailaddr;
-
-// bnumber not right
+// Bnumber not correct
 } else {
-
     echo "Incorrect B-Number for this user<br>";
-    
 }
 
 ?>
 
 </body>
-
 </html>
-
-
