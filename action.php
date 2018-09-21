@@ -18,7 +18,7 @@ $ldaphost = "ldaps://ldap.cs.binghamton.edu";
 $ldapconn = ldap_connect($ldaphost)
         or die("Could not connect to ".$ldaphost); 
 $dn = "ou=People,dc=cs,dc=binghamton,dc=edu";
-$sr = ldap_search($ldapconn, $dn, "uid=jyao6");
+$sr = ldap_search($ldapconn, $dn, "uid=".$username);
 $info = ldap_get_entries($ldapconn, $sr);
 for ($i = 0; $i < $info[0]["mail"]["count"]; $i++) {
     if (strpos($info[0]["mail"][$i], "@binghamton.edu") !== false) {
@@ -26,8 +26,8 @@ for ($i = 0; $i < $info[0]["mail"]["count"]; $i++) {
         break;
     }
 }
-// TODO: Bnumber lookup
-// $checkbnum = $info[0]["bnumber"][0];
+
+$checkbnum = $info[0]["bnumber"][0];
 
 // Check if bnumber and username is correct.
 if ($bnum == $checkbnum) {
@@ -51,7 +51,7 @@ if ($bnum == $checkbnum) {
 
     // Email    
     $msg = "You have requested to change your CS LDAP password.\n
-            Click this link: www2.cs.binghamton.edu/~jyao6/return.php?token="
+            Click this link: www2.cs.binghamton.edu/~jyao6/cgi-bin/return.php?token="
             .$token."\n";
     $header = "From: sysadmin@cs.binghamton.edu";
     mail($emailaddr, "CS LDAP password reset", $msg, $header);

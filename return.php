@@ -22,18 +22,18 @@
 <?php
 
 // Tokens directory path
-$tokendir = "./tokens/";
-$requeststore = "./requeststore/";
+$tokendir = "./tokens/";    // /home/jyao6/reqs/tokens
+$requeststore = "/home/jyao6/Desktop/";     // create into reqs/pending
 
 $token = $_GET["token"];
 $pass = $passagain = $username = "";
 $passerr = $passagainerr = " ";
 
 if (file_exists($tokendir.$token)) {
-    $username = file_get_contents($tokendir.$token);
+    $username = "jyao6";//file_get_contents($tokendir.$token);
     echo "<input type=hidden name=username value=".$username.">";
-    $passmatch = false;
-    $passstrong = false;
+    echo "<input type=hidden name=passok value=".$passok.">";
+    $passok = "0";
     
     if (isset($_POST["pass"])) {
         $pass = $_POST["pass"];
@@ -43,7 +43,7 @@ if (file_exists($tokendir.$token)) {
         if ($pass != $passagain) {
             $passagainerr = "* Passwords do not match";
         } else {
-            $passmatch = true;
+            $passok = "1";
         }
         
         // Password requirements:
@@ -58,17 +58,17 @@ if (file_exists($tokendir.$token)) {
                 if (strpos($uppers, $pass{$i}) !== false) {
                     $uppersmatch = 1;
                 } elseif (strpos($lowers, $pass{$i}) !== false) {
-                    $uppersmatch = 1;
+                    $lowersmatch = 1;
                 } elseif (strpos($numbers, $pass{$i}) !== false) {
-                    $uppersmatch = 1;
+                    $numbersmatch = 1;
                 } elseif (strpos($specials, $pass{$i}) !== false) {
-                    $uppersmatch = 1;
+                    $specialsmatch = 1;
                 } else {
                     $passerr = "* Password character not allowed";
                     break;
                 }
                 if ($uppersmatch + $lowersmatch + $numbersmatch + $specialsmatch >= 3) {
-                    $passstrong = true;
+                    if ($passok == "1") $passok = "2";
                     break;
                 }
             }
@@ -76,11 +76,14 @@ if (file_exists($tokendir.$token)) {
             $passerr = "* Password length must be at least 9 and have 3 of (A-Z, a-z, 0-9, special)";
         }
         
-        if ($passmatch && $passstrong) {
+        if ($passok == "2") {
             // Update password here
             $publickey = openssl_pkey_get_public("file://public_key.pem");
             openssl_public_encrypt($pass, $encryptedpassword, $publickey);
-            file_put_contents($requeststore.$username, $encryptedpassword);
+            //file_put_contents($requeststore.$username, $encryptedpassword);
+            
+            // TODO: Call request_utils or write new request_utils.php to generate
+            // pending request/increment $idnum
 
             // To Decrypt:
             $privatekey = openssl_pkey_get_private("file://private_key.pem");
@@ -90,12 +93,16 @@ if (file_exists($tokendir.$token)) {
            
             echo "<script type='text/javascript'>
                     alert('Password updated to \"".$pass."\"');
-                    window.location.href='http://www2.cs.binghamton.edu/~jyao6/';
+                    
                   </script>";
-        }   
+        } else {
+            echo "<script type='text/javascript'>
+                    alert('passok: \"".$passok."\"');
+                  </script>";
+        }
     }   
 }
-
+//window.location.href='http://www2.cs.binghamton.edu/~jyao6/';
 ?>
 
   New Password: <input type="password" name="pass">
