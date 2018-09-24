@@ -23,14 +23,13 @@
 
 // Tokens directory path
 $tokendir = "./tokens/";    // /home/jyao6/reqs/tokens
-$requeststore = "/home/jyao6/Desktop/";     // create into reqs/pending
 
 $token = $_GET["token"];
 $pass = $passagain = $username = "";
 $passerr = $passagainerr = " ";
 
 if (file_exists($tokendir.$token)) {
-    $username = "jyao6";//file_get_contents($tokendir.$token);
+    $username = file_get_contents($tokendir.$token);
     echo "<input type=hidden name=username value=".$username.">";
     echo "<input type=hidden name=passok value=".$passok.">";
     $passok = "0";
@@ -82,8 +81,9 @@ if (file_exists($tokendir.$token)) {
             openssl_public_encrypt($pass, $encryptedpassword, $publickey);
             //file_put_contents($requeststore.$username, $encryptedpassword);
             
-            // TODO: Call request_utils or write new request_utils.php to generate
-            // pending request/increment $idnum
+            // Generate pending request and increment lastnum
+            include "request_utils.php";
+            new_request($username, $encryptedpassword);
 
             // To Decrypt:
             $privatekey = openssl_pkey_get_private("file://private_key.pem");
@@ -92,7 +92,7 @@ if (file_exists($tokendir.$token)) {
             // TODO: Update password here
            
             echo "<script type='text/javascript'>
-                    alert('Password updated to \"".$pass."\"');
+                    alert('Password updated to \"".$decryptedpassword."\"');
                     
                   </script>";
         } else {

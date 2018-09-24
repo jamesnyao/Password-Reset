@@ -12,8 +12,7 @@ $username = $_GET["username"];
 $bnum = $_GET["bnum"];
 
 // Lookup correct email address
-$emailaddr = "";
-$checkbnum = "123";
+$emailaddr = $checkbnum = "";
 $ldaphost = "ldaps://ldap.cs.binghamton.edu";
 $ldapconn = ldap_connect($ldaphost)
         or die("Could not connect to ".$ldaphost); 
@@ -26,7 +25,6 @@ for ($i = 0; $i < $info[0]["mail"]["count"]; $i++) {
         break;
     }
 }
-
 $checkbnum = $info[0]["bnumber"][0];
 
 // Check if bnumber and username is correct.
