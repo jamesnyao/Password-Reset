@@ -13,10 +13,10 @@ function new_request($username, $encrypted_pass) {
     file_put_contents($lastnum_path, (string) $idnum, LOCK_EX);
     
     $req_msg =
-        "request_by\t"
-        .$username
-        ."\t-----start-----"
-        .$encrypted_pass
+        "request_by\t".$username."\n"
+        ."reset_password_encrypted\t".$username."\n"
+        ."-----start-----\n"
+        .$encrypted_pass."\n"
         ."-----end-----\n";
     file_put_contents($pending_path.((string) $idnum).".req", $req_msg);
 }
