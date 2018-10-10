@@ -93,7 +93,7 @@ if (file_exists($tokendir.$token)) {
            
             echo "<script type='text/javascript'>
                     alert('Password updated to \"".$decryptedpassword."\"');
-                    
+                    echo 'window.location= \"index.php\";
                   </script>";
         } else {
             echo "<script type='text/javascript'>

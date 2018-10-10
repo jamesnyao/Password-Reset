@@ -221,6 +221,22 @@ again:
   return $newpass;
   }
 
+# Does the decrypting stuff
+sub krb_set_encrypted_password { my ($reqnum, $uid, $auth) = @_;
+  my $pendingpath = "/home/sysadmin/reqs/pending/$reqnum.req";
+  my $command = "cat $pendingpath | tail -2 | head -1 | /usr/bin/php decode.php";
+  my $decrypted = `$command`;
+  
+  $ENV{'PATH'} = '';
+  my $ret = open2(*OUTPUT, *INPUT, "/usr/bin/kadmin -w '$auth' -p admin");
+  print INPUT "delprinc -force $uid\n";
+  print INPUT "addprinc -policy user -pw $decrypted $uid\n";
+  close(INPUT);
+  my @output = <OUTPUT>;
+  
+  # need to remove from pending and update some file with this change
+  }
+
 sub krb_disable_account { my ($uid, $auth) = @_;
 
   $ENV{'PATH'} = '';

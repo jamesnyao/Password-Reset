@@ -2,8 +2,8 @@
 
 function new_request($username, $encrypted_pass) {
     $reqs_path = "/home/jyao6/reqs/";
-    $lastnum_path = $reqs_path."lastnum"; // reqs/pending
-    $pending_path = $reqs_path."pending/";
+    $lastnum_path = $reqs_path."lastnum";
+    $pending_path = $reqs_path."pending/";  // reqs/pending
 
     $idnum = 1;
     if (file_exists($lastnum_path)) {
