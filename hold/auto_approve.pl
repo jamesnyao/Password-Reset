@@ -20,7 +20,6 @@ ldap_close_admin();
 
 my %done;
 my @approve = ();
-my @encryptedapprove = ();
 
 while(1)
 {
@@ -64,7 +63,6 @@ while(1)
         
         while (($kosher == 1) && defined($line))
         {
-          $encryptedset = 0;
           if ($line eq "reset_password\t$1")
           {
             print("[$reqnum] Ok: '$line'.\n");
@@ -89,17 +87,11 @@ while(1)
           ($line, @req) = @req;
         }
         
-        if ($kosher == 1 && $encryptedset == 0)
+        if ($kosher == 1)
         {
           print("[$reqnum] Kosher: Should approve.\n\n");
           $reqnum =~ /\A([0-9]+)\Z/;
           @approve = (@approve, $1);
-        }
-        elsif ($kosher == 1 && $encryptedset == 1)
-        {
-          print("[$reqnum] Kosher: Should approve.\n\n");
-          $reqnum =~ /\A([0-9]+)\Z/;
-          @encryptedapprove = (@encryptedapprove, $1);
         }
         else
         {

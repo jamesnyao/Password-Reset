@@ -1115,29 +1115,32 @@ foreach my $reqid (grep(/^req_[0-9]+$/, $cgireq->param))
       # Claim Command Handler
       elsif ($task =~ /^claim\t/)
       {
-        if (!($requestor)) {
+        if (!($requestor))
+        {
           print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
           print("<P>Stopping here - manual intervention needed!</P>\n");
           goto endreq;
-          }
+        }
 
         my (undef, $master, $target, $bad) = split(/\t/, $task);
 
         $remails{$requestor} .= "  -Claim dominion over '$target' account.\n";
-        }
+      }
 
-            # Change Shell Command Handler
-            elsif ($task =~ /^change_shell\t/) {
-        if (!($requestor)) {
+      # Change Shell Command Handler
+      elsif ($task =~ /^change_shell\t/)
+      {
+        if (!($requestor))
+        {
           print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
           print("<P>Stopping here - manual intervention needed!</P>\n");
           goto endreq;
-          }
+        }
 
         my (undef, $shell, $target, $bad) = split(/\t/, $task);
 
         $remails{$requestor} .= "  -Change shell of '$target' account to '$shell'.\n";
-        }
+      }
 
             # Change Type Command Handler
             elsif ($task =~ /^change_type\t/) {
