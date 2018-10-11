@@ -438,7 +438,7 @@ foreach my $reqid (grep(/^req_[0-9]+$/, $cgireq->param))
         $remails{$requestor} .= "  -Claimed dominion over '$target' group.\n";
       }
 
-            # Disable Command Handler
+      # Disable Command Handler
       elsif ($task =~ /^disable_account\t/)
       {
         my (undef, $target) = split(/\t/, $task);
@@ -582,7 +582,7 @@ foreach my $reqid (grep(/^req_[0-9]+$/, $cgireq->param))
         $remails{$requestor} .= "  -Unclaimed dominion over '$target' account.\n";
       }
 
-            # Unclaim Command Handler
+      # Unclaim Command Handler
       elsif ($task =~ /^unclaim_group\t/)
       {
         if (!($requestor))
@@ -628,7 +628,7 @@ foreach my $reqid (grep(/^req_[0-9]+$/, $cgireq->param))
         }
       }
 
-            # Change Shell Command Handler
+      # Change Shell Command Handler
       elsif ($task =~ /^change_shell\t/)
       {
         if (!($requestor))
@@ -646,113 +646,126 @@ foreach my $reqid (grep(/^req_[0-9]+$/, $cgireq->param))
           print("<P>ERROR: Target '$target' of request #$reqnum has no account!</P>\n");
           print("<P>Stopping here - manual intervention needed!</P>\n");
           goto endreq;
-          }
+        }
         $ltdata->entry(0)->replace('loginShell' => "$shell");
         ldap_update_entry($ltdata->entry(0)) || goto endreq;
 
-        if (!($taddrs{$target})) {
+        if (!($taddrs{$target}))
+        {
           my ($taddr) = $ltdata->entry(0)->get_value('mail');
           $taddrs{$target} = $taddr;
-          }
+        }
         if (!($temails{$target})) { $temails{$target} = ""; };
         $temails{$target} .= "  -Your shell was changed to '$shell'.\n";
 
         $remails{$requestor} .= "  -Changed shell of '$target' account to '$shell'.\n";
-        }
+      }
 
-            # Change B-Number
-            elsif ($task =~ /^change_bnumber\t/) {
-        if (!($requestor)) {
+      # Change B-Number
+      elsif ($task =~ /^change_bnumber\t/)
+      {
+        if (!($requestor))
+        {
           print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
           print("<P>Stopping here - manual intervention needed!</P>\n");
           goto endreq;
-          }
+        }
 
         my (undef, $bn, $target, $bad) = split(/\t/, $task);
 
         $ltdata = ldap_search("(uid=$target)");
-        if ($ltdata->entries != 1) {
+        if ($ltdata->entries != 1)
+        {
           print("<P>ERROR: Target '$target' of request #$reqnum has no account!</P>\n");
           print("<P>Stopping here - manual intervention needed!</P>\n");
           goto endreq;
-          }
+        }
         $ltdata->entry(0)->replace('bnumber' => "$bn");
         ldap_update_entry($ltdata->entry(0)) || goto endreq;
 
-        if (!($taddrs{$target})) {
+        if (!($taddrs{$target}))
+        {
           my ($taddr) = $ltdata->entry(0)->get_value('mail');
           $taddrs{$target} = $taddr;
-          }
+        }
         if (!($temails{$target})) { $temails{$target} = ""; };
         $temails{$target} .= "  -The B-Number associated with this account was changed to '$bn'.\n";
 
         $remails{$requestor} .= "  -Changed B-Number of '$target' account to '$bn'.\n";
-        }
+      }
 
-            # Change Quota
-            elsif ($task =~ /^change_quota\t/) {
-        if (!($requestor)) {
+      # Change Quota
+      elsif ($task =~ /^change_quota\t/)
+      {
+        if (!($requestor))
+        {
           print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
           print("<P>Stopping here - manual intervention needed!</P>\n");
           goto endreq;
-          }
+        }
 
         my (undef, $qt, $target, $bad) = split(/\t/, $task);
 
         $ltdata = ldap_search("(uid=$target)");
-        if ($ltdata->entries != 1) {
+        if ($ltdata->entries != 1)
+        {
           print("<P>ERROR: Target '$target' of request #$reqnum has no account!</P>\n");
           print("<P>Stopping here - manual intervention needed!</P>\n");
           goto endreq;
-          }
+        }
         $ltdata->entry(0)->replace('quota' => "$qt");
         ldap_update_entry($ltdata->entry(0)) || goto endreq;
 
-        if (!($taddrs{$target})) {
+        if (!($taddrs{$target}))
+        {
           my ($taddr) = $ltdata->entry(0)->get_value('mail');
           $taddrs{$target} = $taddr;
-          }
+        }
         if (!($temails{$target})) { $temails{$target} = ""; };
         $temails{$target} .= "  -Your quota was changed to $qt GiB.\n";
 
         $remails{$requestor} .= "  -Changed quota of '$target' account to $qt GiB.\n";
+      }
+
+      # Change Alternate Email
+      elsif ($task =~ /^change_email\t/)
+      {
+        if (!($requestor))
+        {
+          print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
         }
 
-            # Change Alternate Email
-            elsif ($task =~ /^change_email\t/) {
-              if (!($requestor)) {
-                print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
-                print("<P>Stopping here - manual intervention needed!</P>\n");
-                goto endreq;
-                }
+        my (undef, $em, $target, $bad) = split(/\t/, $task);
 
-              my (undef, $em, $target, $bad) = split(/\t/, $task);
+        $ltdata = ldap_search("(uid=$target)");
+        if ($ltdata->entries != 1)
+        {
+          print("<P>ERROR: Target '$target' of request #$reqnum has no account!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
+        }
+        #get all the email addresses
+        @emailAddresses = $ltdata->entry(0)->get_value('mail');
+        #remove any non-campus emails
+        @emailAddresses = grep(/\@cs.binghamton.edu$/,@emailAddresses);
+        #add the new alternate email
+        push(@emailAddresses,$em);
+        #replace previous values in mail with the updated array
+        $ltdata->entry(0)->replace('mail' => \@emailAddresses);
+        ldap_update_entry($ltdata->entry(0)) || goto endreq;
 
-              $ltdata = ldap_search("(uid=$target)");
-              if ($ltdata->entries != 1) {
-                print("<P>ERROR: Target '$target' of request #$reqnum has no account!</P>\n");
-                print("<P>Stopping here - manual intervention needed!</P>\n");
-                goto endreq;
-                }
-              #get all the email addresses
-              @emailAddresses = $ltdata->entry(0)->get_value('mail');
-              #remove any non-campus emails
-              @emailAddresses = grep(/\@cs.binghamton.edu$/,@emailAddresses);
-              #add the new alternate email
-              push(@emailAddresses,$em);
-              #replace previous values in mail with the updated array
-              $ltdata->entry(0)->replace('mail' => \@emailAddresses);
-              ldap_update_entry($ltdata->entry(0)) || goto endreq;
+        if (!($taddrs{$target}))
+        {
+          my ($taddr) = $ltdata->entry(0)->get_value('mail');
+          $taddrs{$target} = $taddr;
+        }
+        if (!($temails{$target})) { $temails{$target} = ""; };
+        $temails{$target} .= "  -Your alternate email was changed to $em.\n";
 
-              if (!($taddrs{$target})) {
-                my ($taddr) = $ltdata->entry(0)->get_value('mail');
-                $taddrs{$target} = $taddr;
-                }
-              if (!($temails{$target})) { $temails{$target} = ""; };
-              $temails{$target} .= "  -Your alternate email was changed to $em.\n";
-
-              $remails{$requestor} .= "  -Changed alternate email of '$target' account to $em.\n";
-              }
+        $remails{$requestor} .= "  -Changed alternate email of '$target' account to $em.\n";
+      }
         
             # Change Type Command Handler
             elsif ($task =~ /^change_type\t/) {
