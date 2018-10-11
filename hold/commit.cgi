@@ -534,15 +534,17 @@ foreach my $reqid (grep(/^req_[0-9]+$/, $cgireq->param))
         my (undef, $master, $target, $bad) = split(/\t/, $task);
 
         $ltdata = ldap_search("(uid=$target)");
-        if ($ltdata->entries != 1) {
+        if ($ltdata->entries != 1)
+        {
           print("<P>ERROR: Target '$target' of request #$reqnum has no account!</P>\n");
           print("<P>Stopping here - manual intervention needed!</P>\n");
           goto endreq;
-          }
+        }
         $ltdata->entry(0)->delete('dominionMaster' => ["$master"]);
 
         my @remaining = $ltdata->entry(0)->get_value('dominionMaster');
-        if ($#remaining < 0) {
+        if ($#remaining < 0)
+        {
           #@remaining = $ltdata->entry(0)->get_value('clusterAccess');
           #if ($#remaining >= 0) {
           #  $ltdata->entry(0)->delete('clusterAccess');
@@ -568,68 +570,79 @@ foreach my $reqid (grep(/^req_[0-9]+$/, $cgireq->param))
           $temails{$target} .= "\nPlease note that all of your CS Emails and Files will remain on the CS Servers.\n";
                 $temails{$target} .= "If account access is renabled your data will still be intact.\n";
 
-          if (!($taddrs{$target})) {
+          if (!($taddrs{$target}))
+          {
             my ($taddr) = $ltdata->entry(0)->get_value('mail');
             $taddrs{$target} = $taddr;
-            }
           }
+        }
 
         ldap_update_entry($ltdata->entry(0)) || goto endreq;
 
         $remails{$requestor} .= "  -Unclaimed dominion over '$target' account.\n";
-        }
+      }
 
             # Unclaim Command Handler
-            elsif ($task =~ /^unclaim_group\t/) {
-        if (!($requestor)) {
+      elsif ($task =~ /^unclaim_group\t/)
+      {
+        if (!($requestor))
+        {
           print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
           print("<P>Stopping here - manual intervention needed!</P>\n");
           goto endreq;
-          }
+        }
 
         my (undef, $master, $target, $bad) = split(/\t/, $task);
 
         $ltdata = ldap_search("(&(cn=$target)(objectClass=CSLDAPGroup))");
-        if ($ltdata->entries != 1) {
+        if ($ltdata->entries != 1)
+        {
           print("<P>ERROR: Target '$target' of request #$reqnum is not a group!</P>\n");
           print("<P>Stopping here - manual intervention needed!</P>\n");
           goto endreq;
-          }
+        }
         $ltdata->entry(0)->delete('dominionMaster' => ["$master"]);
         ldap_update_entry($ltdata->entry(0)) || goto endreq;
 
         $remails{$requestor} .= "  -Unclaimed dominion over '$target' group.\n";
 
         my @remaining = $ltdata->entry(0)->get_value('dominionMaster');
-        if ($#remaining < 0) {
+        if ($#remaining < 0)
+        {
           my @members = $ltdata->entry(0)->get_value('memberUid');
           $ltdata = ldap_search("(&(dominionMaster=$target)(objectClass=CSLDAPUser))");
-          if (@members > 0 || $ltdata->entries > 0) {
+          if (@members > 0 || $ltdata->entries > 0)
+          {
             my $reqsubid = new_request($requid);
-            foreach my $member (@members) {
+            foreach my $member (@members)
+            {
               add_to_request("remove_from_group\t$target\t$member\n");
-              }
-            foreach my $user ($ltdata->entries) {
+            }
+            foreach my $user ($ltdata->entries)
+            {
               add_to_request("unclaim_account\t$target\t" . $user->get_value('uid') . "\n");
-              }
+            }
             close_request();
             $remails{$requestor} .= "   -Last/only claimer: group clear has been requested (#$reqsubid)\n";
-            }
           }
         }
+      }
 
             # Change Shell Command Handler
-            elsif ($task =~ /^change_shell\t/) {
-        if (!($requestor)) {
+      elsif ($task =~ /^change_shell\t/)
+      {
+        if (!($requestor))
+        {
           print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
           print("<P>Stopping here - manual intervention needed!</P>\n");
           goto endreq;
-          }
+        }
 
         my (undef, $shell, $target, $bad) = split(/\t/, $task);
 
         $ltdata = ldap_search("(uid=$target)");
-        if ($ltdata->entries != 1) {
+        if ($ltdata->entries != 1)
+        {
           print("<P>ERROR: Target '$target' of request #$reqnum has no account!</P>\n");
           print("<P>Stopping here - manual intervention needed!</P>\n");
           goto endreq;
