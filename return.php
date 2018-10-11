@@ -15,104 +15,83 @@
 </head>
 
 <body>
+  <div id='page-heading'>
+	<h1 class='page-heading-title'>CS Department at Binghamton University<br />System Administration Support Interface</h1>
+	<div class='page-heading-description'>
+		<h2 class='page-heading-topic'>System Administration Support Page</h2>
+		<p class='page-heading-description'>&nbsp;</p>
+	</div>
+	<hr />
+  </div>
 
-<h2>Password reset</h2>
-<form method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>">
+  <div class='information-block'>
+    <h2>Password reset</h2>
+    <form method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>">
 
 <?php
 
-// Tokens directory path
-$tokendir = "./tokens/";    // /home/jyao6/reqs/tokens
+include "utils/request_utils.php";
 
 $token = $_GET["token"];
 $pass = $passagain = $username = "";
 $passerr = $passagainerr = " ";
 
-if (file_exists($tokendir.$token)) {
-    $username = file_get_contents($tokendir.$token);
+if (file_exists($tokensdir.$token))
+{
+    $username = file_get_contents($tokensdir.$token);
     echo "<input type=hidden name=username value=".$username.">";
     echo "<input type=hidden name=passok value=".$passok.">";
-    $passok = "0";
+    $passok = "";
     
-    if (isset($_POST["pass"])) {
+    if (isset($_POST["pass"]))
+    {
         $pass = $_POST["pass"];
         $passagain = $_POST["passagain"];
         $username = $_POST["username"];
     
-        if ($pass != $passagain) {
+        if ($pass != $passagain)
+        {
             $passagainerr = "* Passwords do not match";
-        } else {
-            $passok = "1";
+        }
+        else
+        {
+            $passok = "match";
         }
         
-        // Password requirements:
-        // 9 to 20 string length, 3 of 4 char classes (upper, lower, numbers, specialchars)
-        if (strlen($pass) >= 9 && strlen($pass) <= 20) {
-            $uppers = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-            $lowers = "abcdefghijklmnopqrstuvwxyz";
-            $numbers = "0123456789";
-            $specials = " !\"#$%&'()*+,-./:;<=>?@[\]^_`{|}~";
-            $uppersmatch = $lowersmatch = $numbersmatch = $specialsmatch = 0;
-            for ($i = 0; $i < strlen($pass); $i++) {
-                if (strpos($uppers, $pass{$i}) !== false) {
-                    $uppersmatch = 1;
-                } elseif (strpos($lowers, $pass{$i}) !== false) {
-                    $lowersmatch = 1;
-                } elseif (strpos($numbers, $pass{$i}) !== false) {
-                    $numbersmatch = 1;
-                } elseif (strpos($specials, $pass{$i}) !== false) {
-                    $specialsmatch = 1;
-                } else {
-                    $passerr = "* Password character not allowed";
-                    break;
-                }
-                if ($uppersmatch + $lowersmatch + $numbersmatch + $specialsmatch >= 3) {
-                    if ($passok == "1") $passok = "2";
-                    break;
-                }
-            }
-        } else {
-            $passerr = "* Password length must be at least 9 and have 3 of (A-Z, a-z, 0-9, special)";
-        }
+        // Check password strength
+        $hold = check_pass_strength($pass);
         
-        if ($passok == "2") {
-            // Update password here
-            $publickey = openssl_pkey_get_public("file://public_key.pem");
-            openssl_public_encrypt($pass, $encryptedpassword, $publickey);
-            //file_put_contents($requeststore.$username, $encryptedpassword);
-            
-            // Generate pending request and increment lastnum
-            include "request_utils.php";
-            new_request($username, $encryptedpassword);
-
-            // To Decrypt:
-            $privatekey = openssl_pkey_get_private("file://private_key.pem");
-            openssl_private_decrypt($encryptedpassword, $decryptedpassword, $privatekey);
-            
-            // TODO: Update password here
+        // Password good
+        if ($hold == "strong" && $passok == "match")
+        {           
+            // Generate pending request with encrypted password
+            new_request($username, encrypt_pass($pass, $publickey_file));
            
             echo "<script type='text/javascript'>
-                    alert('Password updated to \"".$decryptedpassword."\"');
-                    echo 'window.location= \"index.php\";
+                    alert('Password successfully updated. Allow up to 10 minutes for the new password to be set.');
+                    window.location.href='http://www2.cs.binghamton.edu/~jyao6/';
                   </script>";
-        } else {
-            echo "<script type='text/javascript'>
-                    alert('passok: \"".$passok."\"');
-                  </script>";
+        }
+        
+        // Password not good
+        else
+        {
+            $passerr = $hold;
         }
     }   
 }
-//window.location.href='http://www2.cs.binghamton.edu/~jyao6/';
+
 ?>
 
-  New Password: <input type="password" name="pass">
-  <span class="error"><?php echo $passerr;?></span>
-  <br><br>
-  New password again: <input type="password" name="passagain">
-  <span class="error"><?php echo $passagainerr;?></span>
-  <br><br>
-  <input type="submit" name="submit" value="Submit">
-</form>
+      <font size="4">&emsp;Enter new password: <input style="font-size:15px;" type="password" name="pass">
+      <span class="error"><?php echo $passerr;?></span>
+      <br><br>
+      <font size="4">&emsp;Enter new password again: <input style="font-size:15px;" type="password" name="passagain">
+      <span class="error"><?php echo $passagainerr;?></span>
+      <br><br>
+      <input type="submit" name="submit" value="Submit">
+    </form>
+  </div>
 
 </body>
 </html>

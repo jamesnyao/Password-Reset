@@ -1,66 +1,64 @@
-<html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+  <title>LDAP Password Reset</title>
+  <meta http-equiv="CACHE-CONTROL" content="NO-CACHE" />
+  <meta http-equiv="PRAGMA" content="NO-CACHE" />
+  <link rel="stylesheet" href='sysadmin.css' type='text/css' media="screen" />
+</head>
+
 <body>
+  <div id='page-heading'>
+	<h1 class='page-heading-title'>CS Department at Binghamton University<br />System Administration Support Interface</h1>
+	<div class='page-heading-description'>
+		<h2 class='page-heading-topic'>System Administration Support Page</h2>
+		<p class='page-heading-description'>&nbsp;</p>
+	</div>
+	<hr />
+  </div>
 
 <?php
 
-require_once "./lib/random.php";
-
-// Tokens directory path
-$tokendir = "./tokens/";
+require "utils/request_utils.php";
 
 $username = $_GET["username"];
 $bnum = $_GET["bnum"];
 
 // Lookup correct email address
-$emailaddr = $checkbnum = "";
 $ldaphost = "ldaps://ldap.cs.binghamton.edu";
 $ldapconn = ldap_connect($ldaphost)
         or die("Could not connect to ".$ldaphost); 
 $dn = "ou=People,dc=cs,dc=binghamton,dc=edu";
 $sr = ldap_search($ldapconn, $dn, "uid=".$username);
-$info = ldap_get_entries($ldapconn, $sr);
-for ($i = 0; $i < $info[0]["mail"]["count"]; $i++) {
-    if (strpos($info[0]["mail"][$i], "@binghamton.edu") !== false) {
-        $emailaddr = $info[0]["mail"][$i];
-        break;
-    }
-}
-$checkbnum = $info[0]["bnumber"][0];
+$ldapinfo = ldap_get_entries($ldapconn, $sr);
+$emailaddr = ldap_get_bmail($ldapinfo);
+$checkbnum = ldap_get_bnum($ldapinfo);
 
 // Check if bnumber and username is correct.
 if ($bnum == $checkbnum) {
 
     // Generate Token
-    $token = "";
-    do {
-        $length = 64; // Choose length of token
-        $token = "";
-        $codeAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        $codeAlphabet .= "abcdefghijklmnopqrstuvwxyz";
-        $codeAlphabet .= "0123456789";
-        $max = strlen($codeAlphabet);
-        for ($i = 0; $i < $length; $i++) {
-            $token .= $codeAlphabet[random_int(0, $max-1)];
-        }
-    } while(file_exists($tokendir.$token)); 
-
-    // Create token file
-    file_put_contents($tokendir.$token, $username);
+    $token = generate_token($tokensdir);
 
     // Email    
     $msg = "You have requested to change your CS LDAP password.\n
-            Click this link: www2.cs.binghamton.edu/~jyao6/cgi-bin/return.php?token="
+            Click this link: www2.cs.binghamton.edu/~jyao6/return.php?token="
             .$token."\n";
     $header = "From: sysadmin@cs.binghamton.edu";
     mail($emailaddr, "CS LDAP password reset", $msg, $header);
-    echo "Email with reset link sent to ".$emailaddr;
+    echo "<font size=\"4\">&emsp;Email with reset link sent to ".$emailaddr."</font>";
 
 // Bnumber not correct
-} else {
-    echo "Incorrect B-Number for this user<br>";
+}
+else
+{
+    echo "<font size=\"4\">&emsp;Incorrect B-Number for this user</font>";
 }
 
 ?>
 
 </body>
 </html>
+
