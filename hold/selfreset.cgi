@@ -141,7 +141,7 @@ if($change == 1) {
       # ???????????????????????????????
       if ($imap->IsAuthenticated) {
         my $reqsubid = new_request($cuid);
-        add_to_request("reset_password\t$cuid\n");  // EDIT HERE ADD PASS
+        add_to_request("reset_password\t$cuid\n");
         close_request();
 
         print("<P><FONT COLOR=green>Password Change Request Successful.</FONT></P>\n");

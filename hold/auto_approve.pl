@@ -20,6 +20,7 @@ ldap_close_admin();
 
 my %done;
 my @approve = ();
+my @encryptedapprove = ();
 
 while(1)
 {
@@ -37,103 +38,83 @@ while(1)
       if (exists($done{"$reqnum"}))
       {
         #Handled already, silently skip
+        next;
       }
-      else
+      
+      my ($status, $reqdata) = get_request($reqnum);
+      my @req = split(/\n/, $reqdata);
+      my $line = '';
+
+      if (!(defined($status) && $status eq 'Pending'))
       {
-        my ($status, $reqdata) = get_request($reqnum);
-        my @req = split(/\n/, $reqdata);
-        my $line = '';
+        print("[$reqnum] No longer pending.\n\n");
+        next;
+      }
+      
+      $done{"$reqnum"} = 1;
+      ($line, @req) = @req;
+      
+      if (defined($line) && $line =~ /\Arequest_by\t([a-z][a-z0-9]+)\Z/)
+      {
+        my $encryptedset = 0;
+        my $requestor = $1;
+        print("[$reqnum] By '$requestor'.\n");
+        my $kosher = 1;
+        ($line, @req) = @req;
         
-        if (defined($status) && $status eq 'Pending')
+        while (($kosher == 1) && defined($line))
         {
-          $done{"$reqnum"} = 1;
-          ($line, @req) = @req;
-          
-          if (defined($line) && $line =~ /\Arequest_by\t([a-z][a-z0-9]+)\Z/)
+          $encryptedset = 0;
+          if ($line eq "reset_password\t$1")
           {
-            my $encrypted = '';
-            my $start = '';
-            my $end = '';
-            my $requestor = $1;
-            print("[$reqnum] By '$requestor'.\n");
-            my $kosher = 1;
-            ($line, @req) = @req;
-            
-            while (($kosher == 1) && defined($line))
-            {
-              if ($line eq "reset_password\t$1")
-              {
-                print("[$reqnum] Ok: '$line'.\n");
-              }
-              # Get encrypted password
-              elsif ($line eq "set_password_encrypted\t$1")
-              {
-                ($start, @req) = @req;
-                if ($start eq "-----start-----")
-                {
-                  ($encrypted, @req) = @req;
-                  ($end, @req) = @req;
-                  if ($end eq "-----end-----")
-                  {
-                    krb_set_encrypted_password($reqnum, $requestor, $pass);
-                    # placeholders
-                    $encrypted '';
-                    $kosher = 0;
-                  }
-                  else
-                  {
-                    $kosher = 0;
-                    $encrypted = '';
-                  }
-                }
-                else
-                {
-                  $kosher = 0;
-                  $encrypted = '';
-                }
-              }
-              elsif ($line eq "change_shell\t/bin/bash\t$1")
-              {
-                print("[$reqnum] Ok: '$line'.\n");
-              }
-              elsif ($line eq "change_shell\t/bin/tcsh\t$1")
-              {
-                print("[$reqnum] Ok: '$line'.\n");
-              }
-              else
-              {
-                $kosher = 0;
-                print("[$reqnum] NOT Ok: '$line'.\n");
-              }
-              ($line, @req) = @req;
-            }
-            
-            if ($kosher == 1)
-            {
-              print("[$reqnum] Kosher: Should approve.\n\n");
-              $reqnum =~ /\A([0-9]+)\Z/;
-              @approve = (@approve, $1);
-            }
-            else
-            {
-              print("[$reqnum] Not Kosher: Ignored.\n\n");
-            }
+            print("[$reqnum] Ok: '$line'.\n");
+          }
+          elsif ($line eq "set_password_encrypted\t$1")
+          {
+            print("[$reqnum] Ok: '$line'.\n");
+          }
+          elsif ($line eq "change_shell\t/bin/bash\t$1")
+          {
+            print("[$reqnum] Ok: '$line'.\n");
+          }
+          elsif ($line eq "change_shell\t/bin/tcsh\t$1")
+          {
+            print("[$reqnum] Ok: '$line'.\n");
           }
           else
           {
-            print("[$reqnum] Ignored due to bad request_by header.\n\n");
+            $kosher = 0;
+            print("[$reqnum] NOT Ok: '$line'.\n");
           }
+          ($line, @req) = @req;
+        }
+        
+        if ($kosher == 1 && $encryptedset == 0)
+        {
+          print("[$reqnum] Kosher: Should approve.\n\n");
+          $reqnum =~ /\A([0-9]+)\Z/;
+          @approve = (@approve, $1);
+        }
+        elsif ($kosher == 1 && $encryptedset == 1)
+        {
+          print("[$reqnum] Kosher: Should approve.\n\n");
+          $reqnum =~ /\A([0-9]+)\Z/;
+          @encryptedapprove = (@encryptedapprove, $1);
         }
         else
         {
-          print("[$reqnum] No longer pending.\n\n");
+          print("[$reqnum] Not Kosher: Ignored.\n\n");
         }
+      }
+      else
+      {
+        print("[$reqnum] Ignored due to bad request_by header.\n\n");
       }
     }
     close_requests();
   }
 
-  #If there are items to approve, do so
+  # If there are items to approve, do so
   if ($#approve >= 0)
   {
     my $post = "admin_auth=$pass";

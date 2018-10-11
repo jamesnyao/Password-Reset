@@ -222,8 +222,9 @@ again:
   }
 
 # Does the decrypting stuff
-sub krb_set_encrypted_password { my ($reqnum, $uid, $auth) = @_;
+sub krb_encrypted_password { my ($reqnum, $uid, $auth) = @_;
   my $pendingpath = "/home/sysadmin/reqs/pending/$reqnum.req";
+  
   my $command = "cat $pendingpath | tail -2 | head -1 | /usr/bin/php decode.php";
   my $decrypted = `$command`;
   
@@ -234,6 +235,7 @@ sub krb_set_encrypted_password { my ($reqnum, $uid, $auth) = @_;
   close(INPUT);
   my @output = <OUTPUT>;
   
+  return $decrypted;
   # need to remove from pending and update some file with this change
   }
 

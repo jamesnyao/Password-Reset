@@ -1,0 +1,182 @@
+/*Standard CSS Stuff*/
+body {
+	background-color:white;
+	margin:0;
+	padding:0;
+}
+
+
+table {
+	border-collapse:collapse;		/*keep gaps out of borders*/
+}
+
+td, th {
+	padding:.2em 1em;			/*gives a little white-space around all values*/
+}
+
+th {
+	border-bottom:solid black thin;
+}
+
+td.numeric_value {
+	text-align:right;			/*numeric cells are right aligned*/
+	font-family:Courier, monospace;		/*numeric cells are monospaced*/
+}
+
+td.unit_value {
+	text-align:right;			/*numeric cells are right aligned*/
+}
+
+tr.disabled {
+	color:#933;				/*Flag disabled accounts in red*/
+}
+
+#page-heading {
+	background-color:#54be46;		/*Light-green, from campus branding guide*/
+}
+
+#page-heading h1 {				/*"CS Department at Binghamton University System Administration Support Interface"*/
+	background-color: #00694e;		/*Dark-green, from campus branding guide, covered by image if available */
+	background-image: url('https://www.cs.binghamton.edu/images/header-bg.gif');	/*Heading background used by campus sites*/
+	background-repeat: repeat-x;		/*Stretch the image*/
+	background-position:right top;		/*Starting in the corner*/
+	color:white;
+	padding:.5em;
+	margin:0;
+}
+
+#page-heading h2 {				/*Variable page-specific heading, has color from #page-heading*/
+        color:white;
+	padding:.5em 1em 0;
+	margin:0;
+}
+
+#page-heading p {				/*Variable page notes*/
+	padding:0 2em;
+	margin:0;
+}
+
+dl.additional-heading-info {			/*This is the little box in the top-right of the heading*/
+	float:right;				/*Take it out of normal page flow, send it to the right*/
+	background-color:#ecc;
+	border:solid thin black;
+	overflow: hidden;			/*Keep text from obscuring content in a tiny window*/
+	padding:.5em .5em 0em;
+	margin:0;
+}
+.additional-heading-info dt {
+	margin:0 1em .5em 0;
+	padding:0;
+	float:left;				/*The floats on the dt and dd here cause them to line up horizontally as well as vertically*/
+	clear:both;
+}
+.additional-heading-info dd {
+	margin:0;
+	padding:0;
+	float:right;
+	clear:right;				/*Keeps multiple dd's in one dt from appearing side-by-side*/
+}
+
+dl.authenticated-account-info {			/*First block of user info, acts similarly to .additional-heading-info above*/
+	margin:0;
+	padding:0 1em;
+	display:inline-block;
+}
+.authenticated-account-info dt {
+	margin:0 1em 1em 0;
+	padding:0;
+	float:left;
+	clear:both;
+}
+.authenticated-account-info dd {
+	margin:0;
+	padding:0;
+	float:right;
+	clear:right;
+}
+
+div.information-block {
+	background-color:#f6f6f6;
+	margin:1em;
+	padding:.5em .5em 1em;
+}
+
+h3.subheading {
+	clear:both;
+	margin:0;
+	padding:0;
+	padding-bottom:.5em;
+}
+
+h4 {
+	margin-bottom:0px;
+}
+
+.subheading span {
+	border-bottom:solid thin black;
+}
+
+p.subheading-note {
+	margin:0 0 .5em;
+}
+
+dl, ul {
+	margin:0 1em;
+}
+
+ul p {
+	margin:0px;	
+}
+dt {
+	margin:1em 0 0;
+	padding:0;
+	font-weight:bold;
+}
+
+dd {
+	margin:.2em 2em;
+	padding:0;
+}
+
+hr {
+	clear:both;
+}
+
+.warning {
+	color:#300;
+	font-style:oblique;
+}
+
+/*Newer CSS Stuff, less widespread compatibility*/
+tr:nth-child(odd) {
+	background-color:#eee;			/*Alternate row color 1 of 2*/
+}
+
+tr:nth-child(even)    {
+	background-color:#fff;			/*Alternate row color 2 of 2*/
+}
+
+tr.dominion_type_row:nth-child(odd) {
+	background-color:#fff;			/*Keep header rows uncolored*/
+}
+
+table.password tr:nth-child(3)    {
+	background-color:#fff;			/*Don't alternate on password reset*/
+}
+
+tr + tr.dominion_type_row th {
+	padding-top:2em;			/*Add whitespace above headers after first row*/
+}
+
+tr td:first-child {
+	padding-left:2em;			/*indent non-header rows*/
+	text-align:left;			/*first column is left-aligned*/
+}
+
+dt.additional-heading-item:after {
+	content: ":";				/*put a colon after a dt*/
+}
+
+dl dt:first-child, ul li:first-child {
+	margin-top:0;				/*Clean up the list by moving up the first item*/
+}

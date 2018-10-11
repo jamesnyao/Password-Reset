@@ -171,6 +171,11 @@ sub get_request {
     $req = "";
     while(my $ln = <INFL>) {
       chomp($ln);
+      if($ln eq '-----start-----') {
+        $ln = <INFL>;
+        $ln = <INFL>;
+        next;
+      }
       $req .= "$ln\n";
       }
     close(INFL);
