@@ -767,6 +767,378 @@ foreach my $reqid (grep(/^req_[0-9]+$/, $cgireq->param))
         $remails{$requestor} .= "  -Changed alternate email of '$target' account to $em.\n";
       }
         
+      # Change Type Command Handler
+      elsif ($task =~ /^change_type\t/)
+      {
+        if (!($requestor))
+        {
+          print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
+        }
+
+        my (undef, $type, $target, $bad) = split(/\t/, $task);
+
+        $ltdata = ldap_search("(uid=$target)");
+        if ($ltdata->entries != 1)
+        {
+          print("<P>ERROR: Target '$target' of request #$reqnum has no account!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
+        }
+        $ltdata->entry(0)->replace('title' => "$type");
+        ldap_update_entry($ltdata->entry(0)) || goto endreq;
+
+        if (!($taddrs{$target}))
+        {
+          my ($taddr) = $ltdata->entry(0)->get_value('mail');
+          $taddrs{$target} = $taddr;
+        }
+        if (!($temails{$target})) { $temails{$target} = ""; };
+        $temails{$target} .= "  -Your account type was changed to '$type'.\n";
+
+        $remails{$requestor} .= "  -Change type of '$target' account to '$type'.\n";
+      }
+
+      # Remove From Cluster Command Handler
+      elsif ($task =~ /^remove_from_cluster\t/)
+      {
+        if (!($requestor))
+        {
+          print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
+        }
+
+        my (undef, $cluster, $target, $bad) = split(/\t/, $task);
+
+        $ltdata = ldap_search("(uid=$target)");
+        if ($ltdata->entries != 1)
+        {
+          print("<P>ERROR: Target '$target' of request #$reqnum has no account!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
+        }
+        $ltdata->entry(0)->delete('clusterAccess' => ["$cluster"]);
+        ldap_update_entry($ltdata->entry(0)) || goto endreq;
+
+        if (!($taddrs{$target}))
+        {
+          my ($taddr) = $ltdata->entry(0)->get_value('mail');
+          $taddrs{$target} = $taddr;
+        }
+        if (!($temails{$target})) { $temails{$target} = ""; };
+        $temails{$target} .= "  -$cluster access has been removed from your account.\n";
+
+        $remails{$requestor} .= "  -Revoked $cluster access from $target.\n";
+      }
+
+      # Add To Cluster Command Handler
+      elsif ($task =~ /^add_to_cluster\t/)
+      {
+        if (!($requestor))
+        {
+          print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
+        }
+
+        my (undef, $cluster, $target, $bad) = split(/\t/, $task);
+
+        $ltdata = ldap_search("(uid=$target)");
+        if ($ltdata->entries != 1)
+        {
+          print("<P>ERROR: Target '$target' of request #$reqnum has no account!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
+        }
+        $ltdata->entry(0)->add('clusterAccess' => "$cluster");
+        ldap_update_entry($ltdata->entry(0)) || goto endreq;
+
+        if (!($taddrs{$target}))
+        {
+          my ($taddr) = $ltdata->entry(0)->get_value('mail');
+          $taddrs{$target} = $taddr;
+        }
+        if (!($temails{$target})) { $temails{$target} = ""; };
+        $temails{$target} .= "  -$cluster access has been added to your account.\n";
+
+        $remails{$requestor} .= "  -Granted $cluster access to $target.\n";
+      }
+
+      # Remove From Group Command Handler
+      elsif ($task =~ /^remove_from_group\t/)
+      {
+        if (!($requestor))
+        {
+          print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
+        }
+
+        my (undef, $group, $target, $bad) = split(/\t/, $task);
+
+        $ltdata = ldap_search("(uid=$target)");
+        if ($ltdata->entries != 1)
+        {
+          print("<P>ERROR: Target '$target' of request #$reqnum has no account!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
+        }
+        $lgdata = ldap_search("(&(cn=$group)(objectClass=CSLDAPGroup))");
+        if ($lgdata->entries != 1)
+        {
+          print("<P>ERROR: Group '$group' of request #$reqnum has no LDAP entry!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
+        }
+        $lgdata->entry(0)->delete('memberUid' => [ "$target" ]);
+        ldap_update_entry($lgdata->entry(0)) || goto endreq;
+
+        if (!($taddrs{$target}))
+        {
+          my ($taddr) = $ltdata->entry(0)->get_value('mail');
+          $taddrs{$target} = $taddr;
+        }
+        if (!($temails{$target})) { $temails{$target} = ""; };
+        $temails{$target} .= "  -You have been removed from the $group group.\n";
+
+        $remails{$requestor} .= "  -Removed $target from group $group.\n";
+      }
+
+      # Add To Group Command Handler
+      elsif ($task =~ /^add_to_group\t/)
+      {
+        if (!($requestor))
+        {
+          print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
+        }
+
+        my (undef, $group, $target, $bad) = split(/\t/, $task);
+
+        $ltdata = ldap_search("(uid=$target)");
+        if ($ltdata->entries != 1)
+        {
+          print("<P>ERROR: Target '$target' of request #$reqnum has no account!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
+        }
+        $lgdata = ldap_search("(&(cn=$group)(objectClass=CSLDAPGroup))");
+        if ($lgdata->entries != 1)
+        {
+          print("<P>ERROR: Group '$group' of request #$reqnum has no LDAP entry!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
+        }
+        $lgdata->entry(0)->add('memberUid' => "$target");
+        ldap_update_entry($lgdata->entry(0)) || goto endreq;
+
+        if (!($taddrs{$target}))
+        {
+          my ($taddr) = $ltdata->entry(0)->get_value('mail');
+          $taddrs{$target} = $taddr;
+        }
+        if (!($temails{$target})) { $temails{$target} = ""; };
+        $temails{$target} .= "  -You have been added to the $group group.\n";
+
+        $remails{$requestor} .= "  -Added $target to group $group.\n";
+      }
+
+      # Reset Password Command Handler
+      elsif ($task =~ /^reset_password\t/)
+      {
+        if (!($requestor))
+        {
+          print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
+        }
+
+        my (undef, $target, $bad) = split(/\t/, $task);
+
+        $ltdata = ldap_search("(uid=$target)");
+        if ($ltdata->entries != 1)
+        {
+          print("<P>ERROR: Target '$target' of request #$reqnum has no account!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
+        }
+
+        my $newpass = krb_reset_password($target, $auth);
+
+        #Purge old LDAP password, if present - REMOVE WHEN TRANSITION COMPLETE!
+        if ($ltdata->entry(0)->exists('userPassword'))
+        {
+          $ltdata->entry(0)->delete('userPassword' => []);
+          ldap_update_entry($ltdata->entry(0)) || goto endreq;
+        }
+
+        my ($taddr) = grep(!/$target\@cs\.binghamton\.edu$/,
+          $ltdata->entry(0)->get_value('mail'));
+        if (!($taddr))
+        {
+          print("<P>ERROR: Target '$target' has no alternate e-mail address, can't contact them!</P>\n");
+        }
+        else
+        {
+          if (!($temails{$target})) { $temails{$target} = ""; };
+          $temails{$target} .= "  -Your password has been reset to \"$newpass\".\n";
+          $taddrs{$target} = $taddr;
+        }
+
+        $remails{$requestor} .= "  -Reset password for $target account.\n";
+      }
+        
+      # Reset Password Ecrypted Command Handler
+      elsif ($task =~ /^reset_password_encryptedy\t/)
+      {
+        if (!($requestor))
+        {
+          print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
+        }
+
+        my (undef, $target, $bad) = split(/\t/, $task);
+
+        $ltdata = ldap_search("(uid=$target)");
+        if ($ltdata->entries != 1)
+        {
+          print("<P>ERROR: Target '$target' of request #$reqnum has no account!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
+        }
+
+        my $newpass = krb_encrypted_password($reqnum, $target, $auth);
+
+        #Purge old LDAP password, if present - REMOVE WHEN TRANSITION COMPLETE!
+        if ($ltdata->entry(0)->exists('userPassword'))
+        {
+          $ltdata->entry(0)->delete('userPassword' => []);
+          ldap_update_entry($ltdata->entry(0)) || goto endreq;
+        }
+
+        my ($taddr) = grep(!/$target\@cs\.binghamton\.edu$/,
+          $ltdata->entry(0)->get_value('mail'));
+        if (!($taddr))
+        {
+          print("<P>ERROR: Target '$target' has no alternate e-mail address, can't contact them!</P>\n");
+        }
+        else
+        {
+          if (!($temails{$target})) { $temails{$target} = ""; };
+          $temails{$target} .= "  - You have changed your password.\n";
+          $temails{$target} .= "  - If you did not make this change, please contact the system admin (email below).\n";
+          $taddrs{$target} = $taddr;
+        }
+
+        $remails{$requestor} .= "  -Change password for $target account.\n";
+        
+      }
+    }
+    
+    print("<P>Request #$reqnum: Successfully approved</P>\n");
+    print("<P>(Will be sending mail to orignal requestor at: $requestor)\n</P>");
+  }
+  
+  # Denied reqs
+  elsif ($cgireq->param($reqid) eq "denied")
+  {
+    if (!deny_request($reqnum))
+    {
+      print("<P>Request #$reqnum: Failed to deny!</P>\n");
+      print("<P>Stopping here - manual intervention needed!</P>\n");
+      goto endreq;
+    }
+
+    foreach $task (split(/\n/, $req))
+    {
+      print(".");
+
+      # Request Originator Command Handler
+      if ($task =~ /^request_by\t/) 
+      {
+        my $bad;
+        (undef, $requid, $bad) = split(/\t/, $task);
+        if ($bad || (!$requid))
+        {
+          print("<P>Warnnig: Request #$reqnum: Malformed 'request_by' task entry.</P>\n");
+          print("<P>Continuing since this request was denied.</P>\n");
+        }
+        $lrdata = ldap_search("(uid=$requid)");
+        if ($lrdata->entries != 1)
+        {
+          print("<P>ERROR: Original requestor of #$reqnum has no account!</P>\n");
+          print("<P>Continuing since this request was denied.</P>\n");
+        }
+        ($requestor) = $lrdata->entry(0)->get_value('mail');
+
+        if (!exists($remails{$requestor})) { $remails{$requestor} = ""; }
+        $remails{$requestor} .= "\nYour request #$reqnum has been DENIED.\n";
+        $remails{$requestor} .= "This request contained the following tasks:\n";
+      }
+
+      # Create New Account Command Handler
+      elsif ($task =~ /^create_account\t/)
+      {
+        if (!($requestor))
+        {
+          print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
+        }
+
+        my (undef, $id, $sn, $gn, $sx, $em, $tp, $bad) = split(/\t/, $task);
+        my $fullname = "$gn $sn";
+        if ($sx && $sx ne "") { $fullname .= " $sx"; }
+
+        $remails{$requestor} .= "  -Create $tp Account '$id' for $fullname.\n";
+      }
+
+      # Create New Group Command Handler
+      elsif ($task =~ /^create_group\t/)
+      {
+        if (!($requestor))
+        {
+          print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
+        }
+
+        my (undef, $id, $bad) = split(/\t/, $task);
+
+        $remails{$requestor} .= "  -Create new group '$id'.\n";
+      }
+
+      # Claim Command Handler
+      elsif ($task =~ /^claim\t/)
+      {
+        if (!($requestor)) {
+          print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
+          }
+
+        my (undef, $master, $target, $bad) = split(/\t/, $task);
+
+        $remails{$requestor} .= "  -Claim dominion over '$target' account.\n";
+        }
+
+            # Change Shell Command Handler
+            elsif ($task =~ /^change_shell\t/) {
+        if (!($requestor)) {
+          print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
+          print("<P>Stopping here - manual intervention needed!</P>\n");
+          goto endreq;
+          }
+
+        my (undef, $shell, $target, $bad) = split(/\t/, $task);
+
+        $remails{$requestor} .= "  -Change shell of '$target' account to '$shell'.\n";
+        }
+
             # Change Type Command Handler
             elsif ($task =~ /^change_type\t/) {
         if (!($requestor)) {
@@ -776,22 +1148,6 @@ foreach my $reqid (grep(/^req_[0-9]+$/, $cgireq->param))
           }
 
         my (undef, $type, $target, $bad) = split(/\t/, $task);
-
-        $ltdata = ldap_search("(uid=$target)");
-        if ($ltdata->entries != 1) {
-          print("<P>ERROR: Target '$target' of request #$reqnum has no account!</P>\n");
-          print("<P>Stopping here - manual intervention needed!</P>\n");
-          goto endreq;
-          }
-        $ltdata->entry(0)->replace('title' => "$type");
-        ldap_update_entry($ltdata->entry(0)) || goto endreq;
-
-        if (!($taddrs{$target})) {
-          my ($taddr) = $ltdata->entry(0)->get_value('mail');
-          $taddrs{$target} = $taddr;
-          }
-        if (!($temails{$target})) { $temails{$target} = ""; };
-        $temails{$target} .= "  -Your account type was changed to '$type'.\n";
 
         $remails{$requestor} .= "  -Change type of '$target' account to '$type'.\n";
         }
@@ -806,23 +1162,7 @@ foreach my $reqid (grep(/^req_[0-9]+$/, $cgireq->param))
 
         my (undef, $cluster, $target, $bad) = split(/\t/, $task);
 
-        $ltdata = ldap_search("(uid=$target)");
-        if ($ltdata->entries != 1) {
-          print("<P>ERROR: Target '$target' of request #$reqnum has no account!</P>\n");
-          print("<P>Stopping here - manual intervention needed!</P>\n");
-          goto endreq;
-          }
-        $ltdata->entry(0)->delete('clusterAccess' => ["$cluster"]);
-        ldap_update_entry($ltdata->entry(0)) || goto endreq;
-
-        if (!($taddrs{$target})) {
-          my ($taddr) = $ltdata->entry(0)->get_value('mail');
-          $taddrs{$target} = $taddr;
-          }
-        if (!($temails{$target})) { $temails{$target} = ""; };
-        $temails{$target} .= "  -$cluster access has been removed from your account.\n";
-
-        $remails{$requestor} .= "  -Revoked $cluster access from $target.\n";
+        $remails{$requestor} .= "  -Revoke $cluster access from $target.\n";
         }
 
             # Add To Cluster Command Handler
@@ -835,23 +1175,7 @@ foreach my $reqid (grep(/^req_[0-9]+$/, $cgireq->param))
 
         my (undef, $cluster, $target, $bad) = split(/\t/, $task);
 
-        $ltdata = ldap_search("(uid=$target)");
-        if ($ltdata->entries != 1) {
-          print("<P>ERROR: Target '$target' of request #$reqnum has no account!</P>\n");
-          print("<P>Stopping here - manual intervention needed!</P>\n");
-          goto endreq;
-          }
-        $ltdata->entry(0)->add('clusterAccess' => "$cluster");
-        ldap_update_entry($ltdata->entry(0)) || goto endreq;
-
-        if (!($taddrs{$target})) {
-          my ($taddr) = $ltdata->entry(0)->get_value('mail');
-          $taddrs{$target} = $taddr;
-          }
-        if (!($temails{$target})) { $temails{$target} = ""; };
-        $temails{$target} .= "  -$cluster access has been added to your account.\n";
-
-        $remails{$requestor} .= "  -Granted $cluster access to $target.\n";
+        $remails{$requestor} .= "  -Grant $cluster access to $target.\n";
         }
 
             # Remove From Group Command Handler
@@ -864,29 +1188,7 @@ foreach my $reqid (grep(/^req_[0-9]+$/, $cgireq->param))
 
         my (undef, $group, $target, $bad) = split(/\t/, $task);
 
-        $ltdata = ldap_search("(uid=$target)");
-        if ($ltdata->entries != 1) {
-          print("<P>ERROR: Target '$target' of request #$reqnum has no account!</P>\n");
-          print("<P>Stopping here - manual intervention needed!</P>\n");
-          goto endreq;
-          }
-        $lgdata = ldap_search("(&(cn=$group)(objectClass=CSLDAPGroup))");
-        if ($lgdata->entries != 1) {
-          print("<P>ERROR: Group '$group' of request #$reqnum has no LDAP entry!</P>\n");
-          print("<P>Stopping here - manual intervention needed!</P>\n");
-          goto endreq;
-          }
-        $lgdata->entry(0)->delete('memberUid' => [ "$target" ]);
-        ldap_update_entry($lgdata->entry(0)) || goto endreq;
-
-        if (!($taddrs{$target})) {
-          my ($taddr) = $ltdata->entry(0)->get_value('mail');
-          $taddrs{$target} = $taddr;
-          }
-        if (!($temails{$target})) { $temails{$target} = ""; };
-        $temails{$target} .= "  -You have been removed from the $group group.\n";
-
-        $remails{$requestor} .= "  -Removed $target from group $group.\n";
+        $remails{$requestor} .= "  -Remove $target from group $group.\n";
         }
 
             # Add To Group Command Handler
@@ -899,268 +1201,14 @@ foreach my $reqid (grep(/^req_[0-9]+$/, $cgireq->param))
 
         my (undef, $group, $target, $bad) = split(/\t/, $task);
 
-        $ltdata = ldap_search("(uid=$target)");
-        if ($ltdata->entries != 1) {
-          print("<P>ERROR: Target '$target' of request #$reqnum has no account!</P>\n");
-          print("<P>Stopping here - manual intervention needed!</P>\n");
-          goto endreq;
-          }
-        $lgdata = ldap_search("(&(cn=$group)(objectClass=CSLDAPGroup))");
-        if ($lgdata->entries != 1) {
-          print("<P>ERROR: Group '$group' of request #$reqnum has no LDAP entry!</P>\n");
-          print("<P>Stopping here - manual intervention needed!</P>\n");
-          goto endreq;
-          }
-        $lgdata->entry(0)->add('memberUid' => "$target");
-        ldap_update_entry($lgdata->entry(0)) || goto endreq;
-
-        if (!($taddrs{$target})) {
-          my ($taddr) = $ltdata->entry(0)->get_value('mail');
-          $taddrs{$target} = $taddr;
-          }
-        if (!($temails{$target})) { $temails{$target} = ""; };
-        $temails{$target} .= "  -You have been added to the $group group.\n";
-
-        $remails{$requestor} .= "  -Added $target to group $group.\n";
-        }
-
-            # Reset Password Command Handler
-            elsif ($task =~ /^reset_password\t/) {
-        if (!($requestor)) {
-          print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
-          print("<P>Stopping here - manual intervention needed!</P>\n");
-          goto endreq;
-          }
-
-        my (undef, $target, $bad) = split(/\t/, $task);
-
-        $ltdata = ldap_search("(uid=$target)");
-        if ($ltdata->entries != 1) {
-          print("<P>ERROR: Target '$target' of request #$reqnum has no account!</P>\n");
-          print("<P>Stopping here - manual intervention needed!</P>\n");
-          goto endreq;
-          }
-
-        my $newpass = krb_reset_password($target, $auth);
-
-        #Purge old LDAP password, if present - REMOVE WHEN TRANSITION COMPLETE!
-        if ($ltdata->entry(0)->exists('userPassword')) {
-          $ltdata->entry(0)->delete('userPassword' => []);
-          ldap_update_entry($ltdata->entry(0)) || goto endreq;
-          }
-
-        my ($taddr) = grep(!/$target\@cs\.binghamton\.edu$/,
-          $ltdata->entry(0)->get_value('mail'));
-        if (!($taddr)) {
-          print("<P>ERROR: Target '$target' has no alternate e-mail address, can't contact them!</P>\n");
-          }
-        else {
-          if (!($temails{$target})) { $temails{$target} = ""; };
-          $temails{$target} .= "  -Your password has been reset to \"$newpass\".\n";
-          $taddrs{$target} = $taddr;
-          }
-
-        $remails{$requestor} .= "  -Reset password for $target account.\n";
-        }
-        
-          # Reset Password Ecrypted Command Handler
-            elsif ($task =~ /^reset_password_encryptedy\t/) {
-        if (!($requestor)) {
-          print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
-          print("<P>Stopping here - manual intervention needed!</P>\n");
-          goto endreq;
-          }
-
-        my (undef, $target, $bad) = split(/\t/, $task);
-
-        $ltdata = ldap_search("(uid=$target)");
-        if ($ltdata->entries != 1) {
-          print("<P>ERROR: Target '$target' of request #$reqnum has no account!</P>\n");
-          print("<P>Stopping here - manual intervention needed!</P>\n");
-          goto endreq;
-          }
-
-        my $newpass = krb_encrypted_password($reqnum, $target, $auth);
-
-        #Purge old LDAP password, if present - REMOVE WHEN TRANSITION COMPLETE!
-        if ($ltdata->entry(0)->exists('userPassword')) {
-          $ltdata->entry(0)->delete('userPassword' => []);
-          ldap_update_entry($ltdata->entry(0)) || goto endreq;
-          }
-
-        my ($taddr) = grep(!/$target\@cs\.binghamton\.edu$/,
-          $ltdata->entry(0)->get_value('mail'));
-        if (!($taddr)) {
-          print("<P>ERROR: Target '$target' has no alternate e-mail address, can't contact them!</P>\n");
-          }
-        else {
-          if (!($temails{$target})) { $temails{$target} = ""; };
-          $temails{$target} .= "  - You have changed your password.\n";
-          $temails{$target} .= "  - If you did not make this change, please contact the system admin (email below).\n";
-          $taddrs{$target} = $taddr;
-          }
-
-        $remails{$requestor} .= "  -Change password for $target account.\n";
-        
-        }
-      }
-    print("<P>Request #$reqnum: Successfully approved</P>\n");
-    print("<P>(Will be sending mail to orignal requestor at: $requestor)\n</P>");
-    }
-  elsif ($cgireq->param($reqid) eq "denied") {
-    if (!deny_request($reqnum)) {
-      print("<P>Request #$reqnum: Failed to deny!</P>\n");
-      print("<P>Stopping here - manual intervention needed!</P>\n");
-      goto endreq;
+        $remails{$requestor} .= "  -Add $target to group $group.\n";
       }
 
-    foreach $task (split(/\n/, $req)) {
-      print(".");
-
-      # Request Originator Command Handler
-      if ($task =~ /^request_by\t/) {
-  my $bad;
-  (undef, $requid, $bad) = split(/\t/, $task);
-  if ($bad || (!$requid)) {
-    print("<P>Warnnig: Request #$reqnum: Malformed 'request_by' task entry.</P>\n");
-    print("<P>Continuing since this request was denied.</P>\n");
     }
-  $lrdata = ldap_search("(uid=$requid)");
-  if ($lrdata->entries != 1) {
-    print("<P>ERROR: Original requestor of #$reqnum has no account!</P>\n");
-    print("<P>Continuing since this request was denied.</P>\n");
-    }
-  ($requestor) = $lrdata->entry(0)->get_value('mail');
-
-  if (!exists($remails{$requestor})) { $remails{$requestor} = ""; }
-  $remails{$requestor} .= "\nYour request #$reqnum has been DENIED.\n";
-  $remails{$requestor} .= "This request contained the following tasks:\n";
-  }
-
-      # Create New Account Command Handler
-      elsif ($task =~ /^create_account\t/) {
-  if (!($requestor)) {
-    print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
-    print("<P>Stopping here - manual intervention needed!</P>\n");
-    goto endreq;
-    }
-
-  my (undef, $id, $sn, $gn, $sx, $em, $tp, $bad) = split(/\t/, $task);
-  my $fullname = "$gn $sn";
-  if ($sx && $sx ne "") { $fullname .= " $sx"; }
-
-  $remails{$requestor} .= "  -Create $tp Account '$id' for $fullname.\n";
-  }
-
-      # Create New Group Command Handler
-      elsif ($task =~ /^create_group\t/) {
-  if (!($requestor)) {
-    print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
-    print("<P>Stopping here - manual intervention needed!</P>\n");
-    goto endreq;
-    }
-
-  my (undef, $id, $bad) = split(/\t/, $task);
-
-  $remails{$requestor} .= "  -Create new group '$id'.\n";
-  }
-
-      # Claim Command Handler
-      elsif ($task =~ /^claim\t/) {
-  if (!($requestor)) {
-    print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
-    print("<P>Stopping here - manual intervention needed!</P>\n");
-    goto endreq;
-    }
-
-  my (undef, $master, $target, $bad) = split(/\t/, $task);
-
-  $remails{$requestor} .= "  -Claim dominion over '$target' account.\n";
-  }
-
-      # Change Shell Command Handler
-      elsif ($task =~ /^change_shell\t/) {
-  if (!($requestor)) {
-    print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
-    print("<P>Stopping here - manual intervention needed!</P>\n");
-    goto endreq;
-    }
-
-  my (undef, $shell, $target, $bad) = split(/\t/, $task);
-
-  $remails{$requestor} .= "  -Change shell of '$target' account to '$shell'.\n";
-  }
-
-      # Change Type Command Handler
-      elsif ($task =~ /^change_type\t/) {
-  if (!($requestor)) {
-    print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
-    print("<P>Stopping here - manual intervention needed!</P>\n");
-    goto endreq;
-    }
-
-  my (undef, $type, $target, $bad) = split(/\t/, $task);
-
-  $remails{$requestor} .= "  -Change type of '$target' account to '$type'.\n";
-  }
-
-      # Remove From Cluster Command Handler
-      elsif ($task =~ /^remove_from_cluster\t/) {
-  if (!($requestor)) {
-    print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
-    print("<P>Stopping here - manual intervention needed!</P>\n");
-    goto endreq;
-    }
-
-  my (undef, $cluster, $target, $bad) = split(/\t/, $task);
-
-  $remails{$requestor} .= "  -Revoke $cluster access from $target.\n";
-  }
-
-      # Add To Cluster Command Handler
-      elsif ($task =~ /^add_to_cluster\t/) {
-  if (!($requestor)) {
-    print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
-    print("<P>Stopping here - manual intervention needed!</P>\n");
-    goto endreq;
-    }
-
-  my (undef, $cluster, $target, $bad) = split(/\t/, $task);
-
-  $remails{$requestor} .= "  -Grant $cluster access to $target.\n";
-  }
-
-      # Remove From Group Command Handler
-      elsif ($task =~ /^remove_from_group\t/) {
-  if (!($requestor)) {
-    print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
-    print("<P>Stopping here - manual intervention needed!</P>\n");
-    goto endreq;
-    }
-
-  my (undef, $group, $target, $bad) = split(/\t/, $task);
-
-  $remails{$requestor} .= "  -Remove $target from group $group.\n";
-  }
-
-      # Add To Group Command Handler
-      elsif ($task =~ /^add_to_group\t/) {
-  if (!($requestor)) {
-    print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
-    print("<P>Stopping here - manual intervention needed!</P>\n");
-    goto endreq;
-    }
-
-  my (undef, $group, $target, $bad) = split(/\t/, $task);
-
-  $remails{$requestor} .= "  -Add $target to group $group.\n";
-  }
-
-      }
     print("<P>Request #$reqnum: Successfully denied</P>\n");
     print("<P>(Will be sending mail to orignal requestor at: $requestor)\n</P>");
-    }
   }
+}
 
 print("Done</P>\n");
 
@@ -1168,9 +1216,9 @@ print("Done</P>\n");
 #  {smtp => 'localhost', from => 'admin@cs.binghamton.edu'};
 my $smtp = Net::SMTP->new('localhost');
 $smtp->mail('admin@cs.binghamton.edu');
- 
 
-foreach my $addr (keys(%remails)) {
+foreach my $addr (keys(%remails))
+{
   print("<P>Sending e-mail to requestor $addr:</P>\n");
 
 #  $sender->MailMsg({to => "$addr", subject => 'Your CS LDAP Request(s)',
@@ -1183,71 +1231,60 @@ foreach my $addr (keys(%remails)) {
 
   my $smtp = Net::SMTP->new('localhost');
   $smtp->mail('admin@cs.binghamton.edu');
-  if ($smtp->to("$addr")) {
-
-  $smtp->data();
-  $smtp->datasend("Subject: Your CS LDAP Request(s)\n");
-  $smtp->datasend("To: $addr");
-  $smtp->datasend("\n");
-  $smtp->datasend("$remails{$addr}"
-  . "\nDetails on the usage and status of our networks, and some services\n"
-  . "and account configuration can be found here:\n"
-  . "\n\thttp://sysadmin.cs.binghamton.edu/\n"
-  . "\nPlease contact csadmin\@binghamton.edu if you have any problems.\n");
-  $smtp->dataend();
-
-    } else {
-      print "Error: ", $smtp->message();
-    }
+  if ($smtp->to("$addr"))
+  {
+    $smtp->data();
+    $smtp->datasend("Subject: Your CS LDAP Request(s)\n");
+    $smtp->datasend("To: $addr");
+    $smtp->datasend("\n");
+    $smtp->datasend("$remails{$addr}"
+    . "\nDetails on the usage and status of our networks, and some services\n"
+    . "and account configuration can be found here:\n"
+    . "\n\thttp://sysadmin.cs.binghamton.edu/\n"
+    . "\nPlease contact csadmin\@binghamton.edu if you have any problems.\n");
+    $smtp->dataend();
+  }
+  else
+  {
+    print "Error: ", $smtp->message();
+  }
 
   $smtp->quit;  
   undef $smtp;
+}
 
-  }
-
-foreach my $target (keys(%temails)) {
+foreach my $target (keys(%temails))
+{
   print("<P>Sending e-mail to target $taddrs{$target}:</P>\n");
-
-#  $sender->MailMsg({to => "$taddrs{$target}",
-#  subject => "Your CS LDAP Account: $target",
-#  msg => "Your CS LDAP Account (your \""
-#  . $target . "\" account you use to access the Computer\n"
-#  . "Science Networks, including Linux, Classroom, Solaris, etc...)\n"
-#  . "has been reconfigured as follows:\n\n"
-#  . $temails{$target}
-#  . "\nDetails on the usage and status of our networks, and some services\n"
-#  . "and account configuration can be found here:\n"
-#  . "\n\thttp://sysadmin.cs.binghamton.edu/\n"
-#  . "\nPlease contact csadmin\@binghamton.edu if you have any problems.\n"
-#  });
   
   my $smtp = Net::SMTP->new('localhost');
   $smtp->mail('admin@cs.binghamton.edu');
-  if ($smtp->to("$taddrs{$target}")) {
-
-  $smtp->data();
-  $smtp->datasend("Subject: Your CS LDAP Account: $target\n");
-  $smtp->datasend("To: $taddrs{$target}");
-  $smtp->datasend("\n");
-  $smtp->datasend("Your CS LDAP Account (your \""
-  . $target . "\" account you use to access the Computer\n"
-  . "Science Networks, including Linux, Classroom, Solaris, etc...)\n"
-  . "has been reconfigured as follows:\n\n"
-  . $temails{$target}
-  . "\nDetails on the usage and status of our networks, and some services\n"
-  . "and account configuration can be found here:\n"
-  . "\n\thttp://sysadmin.cs.binghamton.edu/\n"
-  . "\nPlease contact csadmin\@binghamton.edu if you have any problems.\n");
-  $smtp->dataend();
-
-    } else {
-      print "Error: ", $smtp->message();
-    }
+  if ($smtp->to("$taddrs{$target}"))
+  {
+    $smtp->data();
+    $smtp->datasend("Subject: Your CS LDAP Account: $target\n");
+    $smtp->datasend("To: $taddrs{$target}");
+    $smtp->datasend("\n");
+    $smtp->datasend("Your CS LDAP Account (your \""
+    . $target . "\" account you use to access the Computer\n"
+    . "Science Networks, including Linux, Classroom, Solaris, etc...)\n"
+    . "has been reconfigured as follows:\n\n"
+    . $temails{$target}
+    . "\nDetails on the usage and status of our networks, and some services\n"
+    . "and account configuration can be found here:\n"
+    . "\n\thttp://sysadmin.cs.binghamton.edu/\n"
+    . "\nPlease contact csadmin\@binghamton.edu if you have any problems.\n");
+    $smtp->dataend();
+  }
+  else
+  {
+    print "Error: ", $smtp->message();
+  }
 
   $smtp->quit;  
   undef $smtp;
 
-  }
+}
 
 
 
