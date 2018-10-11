@@ -1142,65 +1142,75 @@ foreach my $reqid (grep(/^req_[0-9]+$/, $cgireq->param))
         $remails{$requestor} .= "  -Change shell of '$target' account to '$shell'.\n";
       }
 
-            # Change Type Command Handler
-            elsif ($task =~ /^change_type\t/) {
-        if (!($requestor)) {
+      # Change Type Command Handler
+      elsif ($task =~ /^change_type\t/)
+      {
+        if (!($requestor))
+        {
           print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
           print("<P>Stopping here - manual intervention needed!</P>\n");
           goto endreq;
-          }
+        }
 
         my (undef, $type, $target, $bad) = split(/\t/, $task);
 
         $remails{$requestor} .= "  -Change type of '$target' account to '$type'.\n";
-        }
+      }
 
-            # Remove From Cluster Command Handler
-            elsif ($task =~ /^remove_from_cluster\t/) {
-        if (!($requestor)) {
+      # Remove From Cluster Command Handler
+      elsif ($task =~ /^remove_from_cluster\t/)
+      {
+        if (!($requestor))
+        {
           print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
           print("<P>Stopping here - manual intervention needed!</P>\n");
           goto endreq;
-          }
+        }
 
         my (undef, $cluster, $target, $bad) = split(/\t/, $task);
 
         $remails{$requestor} .= "  -Revoke $cluster access from $target.\n";
-        }
+      }
 
-            # Add To Cluster Command Handler
-            elsif ($task =~ /^add_to_cluster\t/) {
-        if (!($requestor)) {
+      # Add To Cluster Command Handler
+      elsif ($task =~ /^add_to_cluster\t/)
+      {
+        if (!($requestor))
+        {
           print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
           print("<P>Stopping here - manual intervention needed!</P>\n");
           goto endreq;
-          }
+        }
 
         my (undef, $cluster, $target, $bad) = split(/\t/, $task);
 
         $remails{$requestor} .= "  -Grant $cluster access to $target.\n";
-        }
+      }
 
-            # Remove From Group Command Handler
-            elsif ($task =~ /^remove_from_group\t/) {
-        if (!($requestor)) {
+      # Remove From Group Command Handler
+      elsif ($task =~ /^remove_from_group\t/)
+      {
+        if (!($requestor))
+        {
           print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
           print("<P>Stopping here - manual intervention needed!</P>\n");
           goto endreq;
-          }
+        }
 
         my (undef, $group, $target, $bad) = split(/\t/, $task);
 
         $remails{$requestor} .= "  -Remove $target from group $group.\n";
-        }
+      }
 
-            # Add To Group Command Handler
-            elsif ($task =~ /^add_to_group\t/) {
-        if (!($requestor)) {
+      # Add To Group Command Handler
+      elsif ($task =~ /^add_to_group\t/)
+      {
+        if (!($requestor))
+        {
           print("<P>ERROR: Original requestor not declared yet when task asked!</P>\n");
           print("<P>Stopping here - manual intervention needed!</P>\n");
           goto endreq;
-          }
+        }
 
         my (undef, $group, $target, $bad) = split(/\t/, $task);
 
@@ -1208,6 +1218,7 @@ foreach my $reqid (grep(/^req_[0-9]+$/, $cgireq->param))
       }
 
     }
+    
     print("<P>Request #$reqnum: Successfully denied</P>\n");
     print("<P>(Will be sending mail to orignal requestor at: $requestor)\n</P>");
   }
@@ -1223,14 +1234,6 @@ $smtp->mail('admin@cs.binghamton.edu');
 foreach my $addr (keys(%remails))
 {
   print("<P>Sending e-mail to requestor $addr:</P>\n");
-
-#  $sender->MailMsg({to => "$addr", subject => 'Your CS LDAP Request(s)',
-#  msg => "$remails{$addr}"
-#  . "\nDetails on the usage and status of our networks, and some services\n"
-#  . "and account configuration can be found here:\n"
-#  . "\n\thttp://sysadmin.cs.binghamton.edu/\n"
-#  . "\nPlease contact csadmin\@binghamton.edu if you have any problems.\n"
-#  });
 
   my $smtp = Net::SMTP->new('localhost');
   $smtp->mail('admin@cs.binghamton.edu');
@@ -1288,8 +1291,6 @@ foreach my $target (keys(%temails))
   undef $smtp;
 
 }
-
-
 
 $| = 0; #Turn off autoflush!
 
