@@ -1,10 +1,7 @@
 <?php
 
-require_once "./lib/random.php";
-
-// Path to stuff (can edit these)
-$tokensdir = "/home/jyao6/reqs/tokens/";
-$publickey_file = "/home/jyao6/reqs/keys/public_key.pem";
+require_once "lib/random.php";
+include "utils/database.php";
 
 // Get bmail info from $ldapinfo (from ldap_search())
 function ldap_get_bmail($ldapinfo)
@@ -25,9 +22,19 @@ function ldap_get_bnum($ldapinfo)
     return $ldapinfo[0]["bnumber"][0];
 }
 
-// Generate a new, unused token
-function generate_token($tokensdir)
+// Generate a new token; returns empty string if connection fails
+function generate_token($username)
 {
+    // Create connection
+    $conn = db_create_connection();
+    
+    // Check connection
+    if ($conn->connect_error)
+    {
+        die("Connection failed: ".$conn->connect_error);
+        return "";
+    }
+    
     $token = "";
     do
     {
@@ -41,21 +48,21 @@ function generate_token($tokensdir)
         {
             $token .= $codeAlphabet[random_int(0, $max-1)];
         }
+        $sql = "SELECT * FROM `tokens` WHERE `token` = '".$token."'";
+        $result = $conn->query($sql);
     }
-    while(file_exists($tokensdir.$token)); 
+    while($result->num_rows > 0); 
 
-    // Create token file
-    file_put_contents($tokensdir.$token, $username);
+    $sql = "DELETE FROM tokens WHERE timestamp < (CURDATE() - INTERVAL 30 MINUTE)";
+    $conn->query($sql);
     
+    $sql = "INSERT INTO `tokens` (`username`, `token`) VALUES ('".$username."', '".$token."')";
+    if (!$conn->query($sql))
+    {
+        $token = "";
+    }
+    $conn->close();
     return $token;
-}
-
-// Encrypt $pass with the public key file
-function encrypt_pass($pass, $publickey_file)
-{
-    $publickey = openssl_pkey_get_public(file_get_contents($publickey_file));
-    openssl_public_encrypt($pass, $encryptedpassword, $publickey);
-    return $encryptedpassword;
 }
 
 // Checks if $pass meets password requirements:
@@ -100,6 +107,7 @@ function check_pass_strength($pass)
     return "* Password length must be at least 9 and have 3 of (A-Z, a-z, 0-9, special)";
 }
 
+/*
 // Generate a new request to reqs/pending and increments lastnum
 function new_request($username, $encrypted_pass)
 {
@@ -122,5 +130,6 @@ function new_request($username, $encrypted_pass)
         ."-----end-----\n";
     file_put_contents($pending_path.((string) $idnum).".req", $req_msg);
 }
+*/
 
 ?>

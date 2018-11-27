@@ -36,49 +36,98 @@ $token = $_GET["token"];
 $pass = $passagain = $username = "";
 $passerr = $passagainerr = " ";
 
-if (file_exists($tokensdir.$token))
+if (!isset($_POST["pass"]))
 {
-    $username = file_get_contents($tokensdir.$token);
-    echo "<input type=hidden name=username value=".$username.">";
-    echo "<input type=hidden name=passok value=".$passok.">";
-    $passok = "";
-    
-    if (isset($_POST["pass"]))
+    // Create connection
+    $conn = db_create_connection();
+
+    // Check connection
+    if ($conn->connect_error)
     {
-        $pass = $_POST["pass"];
-        $passagain = $_POST["passagain"];
-        $username = $_POST["username"];
+        die("Connection failed: ".$conn->connect_error);
+    }
+
+    $sql = "SELECT * FROM tokens";
+    $result = $conn->query($sql);
+
+    while ($row = $result->fetch_assoc())
+    {
+        if ($row["token"] == $token)
+        {
+            $username = $row["username"];
+            $sql = "DELETE FROM `tokens` WHERE `token`='".$token."'";
+            $result = $conn->query($sql);
+            break;
+        }
+    }
+    $conn->close();
     
-        if ($pass != $passagain)
+    if ($username == "")
+    {
+        echo "<script type='text/javascript'>
+                alert('Invalid link. Please request a new password change email.');
+                window.location.href='http://www2.cs.binghamton.edu/~jyao6/';
+              </script>";
+    }
+    
+    echo "<input type=hidden name=username value=".$username.">";
+}
+else
+{   
+    $pass = $_POST["pass"];
+    $passagain = $_POST["passagain"];
+    $username = $_POST["username"];
+    $passok = "";
+
+    if ($pass != $passagain)
+    {
+        $passagainerr = "* Passwords do not match";
+    }
+    else
+    {
+        $passok = "match";
+    }
+    
+    // Check password strength
+    $strengthcheck = check_pass_strength($pass);
+    
+    // Password good
+    if ($strengthcheck == "strong" && $passok == "match")
+    {
+        // Create connection
+        $conn = db_create_connection();
+
+        // Check connection
+        if ($conn->connect_error)
         {
-            $passagainerr = "* Passwords do not match";
-        }
-        else
-        {
-            $passok = "match";
+            die("Connection failed: ".$conn->connect_error);
         }
         
-        // Check password strength
-        $hold = check_pass_strength($pass);
+        $sql = "INSERT INTO `requests` (`username`, `passwd`) VALUES ('".$username."', ENCODE('".$pass."', '".db_get_secret()."'))";
         
-        // Password good
-        if ($hold == "strong" && $passok == "match")
-        {           
-            // Generate pending request with encrypted password
-            new_request($username, encrypt_pass($pass, $publickey_file));
-           
+        if ($conn->query($sql))
+        {
             echo "<script type='text/javascript'>
-                    alert('Password successfully updated. Allow up to 10 minutes for the new password to be set.');
-                    window.location.href='http://www2.cs.binghamton.edu/~jyao6/';
+                    alert('Password successfully updated. Allow up to 5 minutes for the new password to be set.')
                   </script>";
         }
-        
-        // Password not good
         else
         {
-            $passerr = $hold;
+            echo "<script type='text/javascript'>
+                    alert('A database error occurred. Please try again later.')
+                  </script>";
         }
-    }   
+        $conn->close();
+        echo "<script type='text/javascript'>
+                window.location.href='http://www2.cs.binghamton.edu/~jyao6/'
+              </script>";
+    }
+    
+    // Password not good
+    else
+    {
+        $passerr = $strengthcheck;
+    }
 }
 
 ?>

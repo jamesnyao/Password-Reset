@@ -40,15 +40,25 @@ $checkbnum = ldap_get_bnum($ldapinfo);
 if ($bnum == $checkbnum) {
 
     // Generate Token
-    $token = generate_token($tokensdir);
-
-    // Email    
-    $msg = "You have requested to change your CS LDAP password.\n
-            Click this link: www2.cs.binghamton.edu/~jyao6/return.php?token="
-            .$token."\n";
-    $header = "From: sysadmin@cs.binghamton.edu";
-    mail($emailaddr, "CS LDAP password reset", $msg, $header);
-    echo "<font size=\"4\">&emsp;Email with reset link sent to ".$emailaddr."</font>";
+    $token = generate_token($username);
+    
+    if ($token == "")
+    {
+        echo "<script type='text/javascript'>
+                alert('Error');
+                window.location.href='http://www2.cs.binghamton.edu/~jyao6/';
+              </script>";
+    }
+    else
+    {
+        // Email    
+        $msg = "You have requested to change your CS LDAP password.\n
+                Click this link: www2.cs.binghamton.edu/~jyao6/return.php?token="
+                .$token."\n";
+        $header = "From: sysadmin@cs.binghamton.edu";
+        mail($emailaddr, "CS LDAP password reset", $msg, $header);
+        echo "<font size=\"4\">&emsp;Email with reset link sent to ".$emailaddr."</font>";
+    }
 
 // Bnumber not correct
 }
