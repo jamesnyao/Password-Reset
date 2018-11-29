@@ -47,6 +47,8 @@ if (!isset($_POST["pass"]))
         die("Connection failed: ".$conn->connect_error);
     }
 
+    $sql = "DELETE FROM tokens WHERE timestamp < (CURDATE() - INTERVAL 30 MINUTE)";
+    $conn->query($sql);
     $sql = "SELECT * FROM tokens";
     $result = $conn->query($sql);
 
