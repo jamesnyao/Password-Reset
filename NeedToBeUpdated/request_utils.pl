@@ -132,35 +132,38 @@ sub add_to_request {
 sub add_mysql_requests
 {
   open_log();
-  while (1)
+  my $command = "/usr/bin/php mysql_collect.php";
+  my $mysqlresponse = `$command`;
+  if ($mysqlresponse ne "")
   {
-    my $command = "/usr/bin/php mysql_collect.php";
-    my $userid = `$command`;
-    if ($userid == "") break;
-    
-    my $idnum;
-    open(LASTFILE, "/home/sysadmin/reqs/lastnum")
-      || die "Can't open lastnum file!\n";
-    $idnum = <LASTFILE>;
-    chomp($idnum);
-    close(LASTFILE);
+    my @userids = split(/,/, $mysqlresponse);
+    foreach my $userid (@userids)
+    {
+      my $idnum;
+      open(LASTFILE, "/home/sysadmin/reqs/lastnum")
+        || die "Can't open lastnum file!\n";
+      $idnum = <LASTFILE>;
+      chomp($idnum);
+      close(LASTFILE);
 
-    ++ $idnum;
+      ++ $idnum;
 
-    open(LASTFILE, ">/home/sysadmin/reqs/lastnum")
-      || die "Can't write to lastnum file!\n";
-    print LASTFILE "$idnum\n";
-    close(LASTFILE);
+      open(LASTFILE, ">/home/sysadmin/reqs/lastnum")
+        || die "Can't write to lastnum file!\n";
+      print LASTFILE "$idnum\n";
+      close(LASTFILE);
 
-    add_to_log("Request #$idnum submitted by $_[0]");
+      add_to_log("Request #$idnum submitted by $_[0]");
 
-    if($idnum =~ /^([0-9]+)$/) {
-      $idnum = $1;
-      }
-    open(REQFILE, ("> /home/sysadmin/reqs/pending/$idnum" . ".req"))
-      || die "Can't open requestfile!\n";
+      if($idnum =~ /^([0-9]+)$/) {
+        $idnum = $1;
+        }
+      open(REQFILE, ("> /home/sysadmin/reqs/pending/$idnum" . ".req"))
+        || die "Can't open requestfile!\n";
 
-    print REQFILE ("request_by\t".$userid."\nset_password_encrypted\t".$userid."\n");
+      print REQFILE ("request_by\t".$userid."\nset_password_encrypted\t".$userid."\n");
+      close(REQFILE);
+    }
   }
 }
 

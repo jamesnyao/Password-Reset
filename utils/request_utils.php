@@ -53,7 +53,7 @@ function generate_token($username)
     }
     while($result->num_rows > 0); 
 
-    $sql = "DELETE FROM tokens WHERE timestamp < (CURDATE() - INTERVAL 30 MINUTE)";
+    $sql = "DELETE FROM `tokens` WHERE `timestamp` < (CURDATE() - INTERVAL 30 MINUTE)";
     $conn->query($sql);
     
     $sql = "INSERT INTO `tokens` (`username`, `token`) VALUES ('".$username."', '".$token."')";
@@ -74,7 +74,7 @@ function check_pass_strength($pass)
         $uppers = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         $lowers = "abcdefghijklmnopqrstuvwxyz";
         $numbers = "0123456789";
-        $specials = " !\"#$%&'()*+,-./:;<=>?@[\]^_`{|}~";
+        $specials = "!\"#$%&'()*+,-./:;<=>?@[\]^_`{|}~";
         $uppersmatch = $lowersmatch = $numbersmatch = $specialsmatch = 0;
         for ($i = 0; $i < strlen($pass); $i++)
         {

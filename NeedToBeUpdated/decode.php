@@ -8,7 +8,8 @@ $userid = trim(fgets($handle));
 $conn = db_create_connection();
 
 $sql = "SELECT DECODE(`passwd`, ".db_get_secret().") AS `passwd` FROM `requests` WHERE `username` = '".$userid."'";
-$pass = $conn->query($sql);
+$result = $conn->query($sql);
+$pass = $result->fetch_assoc()["passwd"];
 $sql = "DELETE FROM `requests` WHERE `username` = '".$userid."'";
 $conn->query($sql);
 

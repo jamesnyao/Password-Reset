@@ -53,11 +53,11 @@ if ($bnum == $checkbnum) {
     {
         // Email    
         $msg = "You have requested to change your CS LDAP password.\n
-                Click this link: www2.cs.binghamton.edu/~jyao6/return.php?token="
+                Click this link: https://www2.cs.binghamton.edu/~jyao6/return.php?token="
                 .$token."\n";
         $header = "From: sysadmin@cs.binghamton.edu";
         mail($emailaddr, "CS LDAP password reset", $msg, $header);
-        echo "<font size=\"4\">&emsp;Email with reset link sent to ".$emailaddr."</font>";
+        echo "<font size=\"4\">&emsp;Email with th reset link was sent to ".$emailaddr.". The link will expire in 30 minutes.</font>";
     }
 
 // Bnumber not correct
